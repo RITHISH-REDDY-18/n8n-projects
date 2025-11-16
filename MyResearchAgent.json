@@ -1,0 +1,188 @@
+{
+  "name": "MyResearchAgent",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Extract email address from chatInput using regex\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const chatInput = item.json.chatInput || '';\n  \n  // Regex to extract email address\n  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/;\n  const emailMatch = chatInput.match(emailRegex);\n  const email = emailMatch ? emailMatch[0] : '';\n  \n  results.push({\n    json: {\n      chatInput: chatInput,\n      email: email\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "d47d815c-d111-4cac-b4b0-fe49f4936d65",
+      "name": "Extract Email from Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2752,
+        1520
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Extract Email from Input').first().json.email }}",
+        "subject": "={{ 'Your Research Summary about ' + $('When chat message received').first().json.chatInput + ' - Audio File' }}",
+        "message": "Please find attached the audio summary of your research topic.",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "id": "e4ee6773-ea74-4383-a454-bb6148f92852",
+      "name": "Send Email with Audio",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3264,
+        1824
+      ],
+      "webhookId": "6d4a5616-5b6e-4148-9d66-617fca562190",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "D2OxJP29EgiXDihj",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "input": "={{ $json.output }}",
+        "options": {}
+      },
+      "id": "a39288e1-c149-4d16-821c-d49727a54ec8",
+      "name": "Generate Audio from Summary",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        1824
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "yH1aBWBsYNpplnP1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "id": "2e321c0e-80a0-431a-91fe-70cdc225cca9",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2768,
+        2048
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "yH1aBWBsYNpplnP1",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are a research assistant. Your task is to:\n1. Research the topic provided by the user using your knowledge\n2. Create a comprehensive, well-structured summary (500-600 words maximum)\n3. Include:\n   - Historical background and key context\n   - Important facts, dates, and milestones\n   - Major contributions or significance\n   - Current relevance and impact\n   - One or two interesting facts\n4. Write in a clear, engaging, conversational style suitable for audio narration\n5. Keep the content concise but informative\n6. Return ONLY the summary text, nothing else\n\nIMPORTANT: Keep the summary under 600 words to ensure it fits within technical limits."
+        }
+      },
+      "id": "84f90874-fa47-4e38-9eed-7dffe3049242",
+      "name": "Research Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2688,
+        1824
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "1ed06a72-a45e-4832-8230-da90ba4b6850",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        2464,
+        1680
+      ],
+      "webhookId": "fe29ce32-17fb-4400-a6d3-fefea55c7ce5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Generate Audio from Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Email with Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Agent": {
+      "main": [
+        [
+          {
+            "node": "Generate Audio from Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Extract Email from Input",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Research Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "6000844f-a36e-4685-bb0a-fa268ac82267",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c3bfd44bac5bdaf04cab72757febcf27e76bc71dd42ee5361c55952c1e43c59d"
+  },
+  "id": "Zv1nPWITdz2QMJkO",
+  "tags": []
+}
