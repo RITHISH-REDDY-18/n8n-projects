@@ -14,5 +14,5 @@ This project automates research by:
 3. Run the workflow
 
 ### 📦 Included
-- workflow.json (main automation workflow)
+- MyReasearchAgent.json (main automation workflow)
 
